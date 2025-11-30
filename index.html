@@ -2,80 +2,135 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BananaPuck Caregiver Dashboard</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BananaPuck Dashboard</title>
+
     <style>
-        body { font-family: Arial; margin: 0; padding: 0; background: #f0f2f5; }
-        header { padding: 20px; text-align: center; background: #4CAF50; color: white; font-size: 24px; }
-        #map { height: 400px; width: 100%; margin-bottom: 20px; }
-        .vitals { display: flex; justify-content: space-around; margin-bottom: 20px; }
-        .vital { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); width: 150px; text-align: center; }
-        #walkie { text-align: center; margin-bottom: 40px; }
-        button { padding: 15px 25px; font-size: 18px; border: none; border-radius: 10px; background: #4CAF50; color: white; cursor: pointer; }
-        button:active { background: #45a049; }
-    </style>
-</head>
-<body>
-    <header>BananaPuck Caregiver Dashboard</header>
-
-    <div id="map"></div>
-
-    <div class="vitals">
-        <div class="vital">Heart Rate<br><span id="heart_rate">--</span> bpm</div>
-        <div class="vital">Respiration<br><span id="respiration_rate">--</span> /min</div>
-        <div class="vital">Temp<br><span id="temperature">--</span> °C</div>
-        <div class="vital">Submerged<br><span id="submerged">--</span></div>
-    </div>
-
-    <div id="walkie">
-        <button id="talkButton">Hold to Talk</button>
-        <p>Status: <span id="talkStatus">Idle</span></p>
-    </div>
-
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script>
-        const map = L.map('map').setView([37.422, -122.084], 18);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-        const marker = L.marker([37.422, -122.084]).addTo(map);
-
-        async function fetchData() {
-            const res = await fetch('http://10.0.0.75:5000/get_data');
-            const data = await res.json();
-
-            // Update vitals
-            document.getElementById('heart_rate').innerText = data.heart_rate || '--';
-            document.getElementById('respiration_rate').innerText = data.respiration_rate || '--';
-            document.getElementById('temperature').innerText = data.temperature || '--';
-            document.getElementById('submerged').innerText = data.submerged ? 'Yes' : 'No';
-
-            // Update map
-            if (data.location && data.location.lat && data.location.lon) {
-                marker.setLatLng([data.location.lat, data.location.lon]);
-                map.setView([data.location.lat, data.location.lon]);
-            }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f3f3;
+            padding: 20px;
+            margin: 0;
         }
 
-        setInterval(fetchData, 1000);
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
 
-        // Walkie-talkie simulation
-        const talkButton = document.getElementById('talkButton');
-        const talkStatus = document.getElementById('talkStatus');
-        let talking = false;
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
 
-        talkButton.addEventListener('mousedown', () => {
-            talking = true;
-            talkStatus.innerText = 'Recording...';
-        });
-        talkButton.addEventListener('mouseup', () => {
-            talking = false;
-            talkStatus.innerText = 'Idle';
-            // For simulation, send dummy audio to server
-            fetch('http://10.0.0.75:5000/walkie', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({audio_bytes: Array(100).fill(0)})
-            });
-        });
-    </script>
+        .stat-box {
+            background: white;
+            padding: 18px;
+            border-radius: 12px;
+            box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-box h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        /* Push to Talk */
+        #ptt-container {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        #ptt-btn {
+            background: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        #ptt-btn:active {
+            background: #005fcc;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>BananaPuck Live Dashboard</h1>
+
+    <div class="grid">
+
+        <!-- Existing boxes -->
+        <div class="stat-box"><h3>Heart Rate</h3><p id="heartRate">-- bpm</p></div>
+        <div class="stat-box"><h3>Respiration</h3><p id="respiration">-- bpm</p></div>
+        <div class="stat-box"><h3>Body Temp</h3><p id="bodyTemp">-- °C</p></div>
+        <div class="stat-box"><h3>Water Submergence</h3><p id="water">--</p></div>
+
+        <!-- NEW BOXES -->
+
+        <!-- Orientation -->
+        <div class="stat-box">
+            <h3>Orientation</h3>
+            <p id="roll">Roll: --</p>
+            <p id="pitch">Pitch: --</p>
+            <p id="yaw">Yaw: --</p>
+        </div>
+
+        <!-- Acceleration -->
+        <div class="stat-box">
+            <h3>Acceleration</h3>
+            <p id="accelX">X: --</p>
+            <p id="accelY">Y: --</p>
+            <p id="accelZ">Z: --</p>
+        </div>
+
+        <!-- Gyroscope -->
+        <div class="stat-box">
+            <h3>Gyroscope</h3>
+            <p id="gyroX">X: --</p>
+            <p id="gyroY">Y: --</p>
+            <p id="gyroZ">Z: --</p>
+        </div>
+
+        <!-- Lidar -->
+        <div class="stat-box">
+            <h3>Lidar Distance</h3>
+            <p id="lidar">-- m</p>
+        </div>
+
+        <!-- GPS -->
+        <div class="stat-box">
+            <h3>GPS</h3>
+            <p id="gpsLat">Lat: --</p>
+            <p id="gpsLon">Lon: --</p>
+            <p id="gpsAcc">Accuracy: -- m</p>
+        </div>
+
+        <!-- Audio -->
+        <div class="stat-box">
+            <h3>Audio Recorder</h3>
+            <p id="audioStatus">Status: Idle</p>
+        </div>
+
+        <!-- Actuator -->
+        <div class="stat-box">
+            <h3>Actuator Alerts</h3>
+            <p id="actEvent">--</p>
+        </div>
+
+    </div>
+
+    <!-- Push-to-Talk -->
+    <div id="ptt-container">
+        <button id="ptt-btn">Hold to Talk</button>
+        <p id="ptt-status">Idle</p>
+    </div>
+
+    <script src="app.js"></script>
+
 </body>
 </html>
