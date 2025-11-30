@@ -1,29 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>BananaPuck Caregiver App</title>
     <link rel="stylesheet" href="style.css">
+
+    <!-- Leaflet Map Library -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
-    <h1>BananaPuck Caregiver App</h1>
 
-    <div id="map-container">
-        <h2>Live Location</h2>
-        <div id="map">Map loading...</div>
-    </div>
+    <header>
+        <h1>🍌 BananaPuck Caregiver Dashboard</h1>
+    </header>
 
-    <div id="alerts-container">
-        <h2>Alerts</h2>
-        <ul id="alerts"></ul>
-    </div>
+    <section id="location-section">
+        <h2>📍 Live Location</h2>
 
-    <div id="walkie-container">
-        <h2>Walkie Talkie</h2>
-        <input type="text" id="message-input" placeholder="Type message...">
-        <button id="send-btn">Send</button>
+        <div id="map"></div>
+
+        <div id="coords">
+            <p><strong>Latitude:</strong> <span id="lat">--</span></p>
+            <p><strong>Longitude:</strong> <span id="lon">--</span></p>
+            <p><strong>Accuracy:</strong> <span id="acc">--</span> meters</p>
+        </div>
+    </section>
+
+    <section id="walkie-section">
+        <h2>🎤 Walkie Talkie</h2>
+
+        <button id="record-btn">Hold to Talk</button>
+
         <ul id="walkie-messages"></ul>
-    </div>
+    </section>
 
     <script src="app.js"></script>
 </body>

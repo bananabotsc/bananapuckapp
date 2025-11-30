@@ -1,89 +1,100 @@
-// PC IP for Flask server
 const SERVER_URL = "http://10.0.0.75:5000";
 
-const alertsList = document.getElementById("alerts");
-const walkieList = document.getElementById("walkie-messages");
-const sendBtn = document.getElementById("send-btn");
-const messageInput = document.getElementById("message-input");
-const mapDiv = document.getElementById("map");
+let map;
+let marker;
 
-let lastAlertTimestamp = 0;
+// Initialize map
+window.onload = function() {
+    map = L.map('map').setView([37.421999, -122.084057], 17);
 
-// Fetch data from Flask server
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+    }).addTo(map);
+
+    marker = L.marker([37.421999, -122.084057]).addTo(map);
+};
+
+// Fetch GPS + alerts + walkie messages
 async function fetchData() {
     try {
         const res = await fetch(`${SERVER_URL}/get_data`);
         const data = await res.json();
 
-        updateMap(data.location);
-        updateAlerts(data.alerts);
+        updateLocation(data.location);
         updateWalkie(data.inbox);
 
     } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("Fetch error:", err);
     }
 }
 
-// Update alerts
-function updateAlerts(alerts) {
-    alertsList.innerHTML = "";
-    alerts.forEach(alert => {
-        const li = document.createElement("li");
-        li.textContent = `[${new Date(alert.ts).toLocaleTimeString()}] ${alert.type.toUpperCase()}: ${alert.message}`;
-        alertsList.appendChild(li);
+// Update map + coordinates
+function updateLocation(loc) {
+    document.getElementById("lat").textContent = loc.lat.toFixed(6);
+    document.getElementById("lon").textContent = loc.lon.toFixed(6);
+    document.getElementById("acc").textContent = loc.accuracy;
 
-        // Auto-trigger emergency prompt for new alerts
-        if (alert.ts > lastAlertTimestamp) {
-            lastAlertTimestamp = alert.ts;
-            if (alert.type === "submerged" || alert.type === "fall") {
-                setTimeout(() => {
-                    alertEmergency(alert);
-                }, 10000); // 10 sec later
-            }
-        }
-    });
-}
-
-// Alert caregiver to call emergency services
-function alertEmergency(alert) {
-    const call = confirm(`Emergency detected: ${alert.type}\nCall emergency services now?`);
-    if (call) {
-        alert("Send exact coordinates to emergency services.");
-    }
+    marker.setLatLng([loc.lat, loc.lon]);
+    map.setView([loc.lat, loc.lon]);
 }
 
 // Update walkie messages
 function updateWalkie(messages) {
-    walkieList.innerHTML = "";
+    const box = document.getElementById("walkie-messages");
+    box.innerHTML = "";
+
     messages.forEach(msg => {
         const li = document.createElement("li");
-        li.textContent = `[${new Date(msg.ts).toLocaleTimeString()}] ${msg.message}`;
-        walkieList.appendChild(li);
+        li.textContent = `[${new Date(msg.ts).toLocaleTimeString()}] Voice message received`;
+        box.appendChild(li);
     });
 }
 
-// Send walkie message
-sendBtn.addEventListener("click", async () => {
-    const message = messageInput.value.trim();
-    if (!message) return;
+setInterval(fetchData, 1000);
 
-    try {
-        await fetch(`${SERVER_URL}/send_message`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message })
-        });
-        messageInput.value = "";
-        fetchData(); // refresh immediately
-    } catch (err) {
-        console.error("Error sending message:", err);
-    }
+// ------------------------
+// Walkie Talkie Recorder
+// ------------------------
+
+let mediaRecorder;
+let audioChunks = [];
+
+const recordBtn = document.getElementById("record-btn");
+
+recordBtn.addEventListener("mousedown", async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.start();
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+    recordBtn.textContent = "Recording...";
+    recordBtn.style.background = "#ff5757";
 });
 
-// Update map (simple placeholder)
-function updateMap(location) {
-    mapDiv.textContent = `Lat: ${location.lat.toFixed(6)}, Lon: ${location.lon.toFixed(6)}, Accuracy: ${location.accuracy} m`;
-}
+recordBtn.addEventListener("mouseup", () => {
+    if (!mediaRecorder) return;
 
-// Fetch data every second
-setInterval(fetchData, 1000);
+    mediaRecorder.stop();
+
+    mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+        sendAudio(audioBlob);
+
+        recordBtn.textContent = "Hold to Talk";
+        recordBtn.style.background = "#ffcc00";
+    };
+});
+
+// Send audio to Flask server
+async function sendAudio(blob) {
+    const formData = new FormData();
+    formData.append("audio", blob);
+
+    await fetch(`${SERVER_URL}/send_audio`, {
+        method: "POST",
+        body: formData
+    });
+}
