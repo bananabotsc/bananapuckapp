@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BananaPuck Caregiver</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Leaflet for maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+  <header>
+    <h1>BananaPuck — Caregiver Console</h1>
+    <div id="status">Not connected</div>
+  </header>
+
+  <main>
+    <section id="tracker">
+      <h2>Live GPS Tracker</h2>
+      <div id="map" style="height: 400px;"></div>
+      <div id="coords">No location yet</div>
+    </section>
+
+    <section id="walkie">
+      <h2>Walkie (Caregiver → BananaPuck)</h2>
+      <p>Record a short audio message for the device (push-to-record).</p>
+      <button id="recordBtn">Start Recording</button>
+      <button id="sendBtn" disabled>Send to Device</button>
+      <audio id="preview" controls></audio>
+
+      <h3>Incoming messages from device</h3>
+      <ul id="inbox"></ul>
+    </section>
+
+    <section id="alerts">
+      <h2>Alerts & Emergency</h2>
+      <div id="alertArea"></div>
+      <button id="callEmergencyBtn" style="display:none">Call Emergency & Share Location</button>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-messaging-compat.js"></script>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
