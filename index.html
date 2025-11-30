@@ -1,69 +1,81 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>BananaPuck Caregiver</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="style.css">
-
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <meta charset="UTF-8">
+    <title>BananaPuck Caregiver Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <style>
+        body { font-family: Arial; margin: 0; padding: 0; background: #f0f2f5; }
+        header { padding: 20px; text-align: center; background: #4CAF50; color: white; font-size: 24px; }
+        #map { height: 400px; width: 100%; margin-bottom: 20px; }
+        .vitals { display: flex; justify-content: space-around; margin-bottom: 20px; }
+        .vital { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); width: 150px; text-align: center; }
+        #walkie { text-align: center; margin-bottom: 40px; }
+        button { padding: 15px 25px; font-size: 18px; border: none; border-radius: 10px; background: #4CAF50; color: white; cursor: pointer; }
+        button:active { background: #45a049; }
+    </style>
 </head>
 <body>
-  <header id="topbar">
-    <div class="left">
-      <h1>🍌 BananaPuck</h1>
-      <div id="badge">Caregiver Console</div>
+    <header>BananaPuck Caregiver Dashboard</header>
+
+    <div id="map"></div>
+
+    <div class="vitals">
+        <div class="vital">Heart Rate<br><span id="heart_rate">--</span> bpm</div>
+        <div class="vital">Respiration<br><span id="respiration_rate">--</span> /min</div>
+        <div class="vital">Temp<br><span id="temperature">--</span> °C</div>
+        <div class="vital">Submerged<br><span id="submerged">--</span></div>
     </div>
 
-    <div class="right">
-      <button id="theme-toggle">🌙</button>
-      <button id="login-btn">Log in</button>
-      <button id="panic-btn" title="Call emergency">📞 Panic</button>
+    <div id="walkie">
+        <button id="talkButton">Hold to Talk</button>
+        <p>Status: <span id="talkStatus">Idle</span></p>
     </div>
-  </header>
 
-  <main>
-    <section class="card" id="map-card">
-      <h2>Live Tracker</h2>
-      <div id="map"></div>
-      <div id="coords">
-        <div><strong>Latitude:</strong> <span id="lat">—</span></div>
-        <div><strong>Longitude:</strong> <span id="lon">—</span></div>
-        <div><strong>Accuracy:</strong> <span id="acc">—</span> m</div>
-        <div><strong>Last:</strong> <span id="last">—</span></div>
-      </div>
-    </section>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([37.422, -122.084], 18);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+        const marker = L.marker([37.422, -122.084]).addTo(map);
 
-    <section class="card" id="walkie-card">
-      <h2>Walkie — Press & Hold to Talk</h2>
-      <div id="walkie-controls">
-        <button id="record-btn">Hold to Talk</button>
-        <div id="record-status">Idle</div>
-      </div>
+        async function fetchData() {
+            const res = await fetch('http://10.0.0.75:5000/get_data');
+            const data = await res.json();
 
-      <h3>Messages</h3>
-      <ul id="messages"></ul>
-    </section>
-  </main>
+            // Update vitals
+            document.getElementById('heart_rate').innerText = data.heart_rate || '--';
+            document.getElementById('respiration_rate').innerText = data.respiration_rate || '--';
+            document.getElementById('temperature').innerText = data.temperature || '--';
+            document.getElementById('submerged').innerText = data.submerged ? 'Yes' : 'No';
 
-  <!-- Login Modal -->
-  <div id="login-modal" class="modal hidden">
-    <div class="modal-content">
-      <h3>Caregiver Login</h3>
-      <input id="username" placeholder="username">
-      <input id="password" type="password" placeholder="password">
-      <div class="modal-buttons">
-        <button id="do-login">Login</button>
-        <button id="close-login">Cancel</button>
-      </div>
-      <div id="login-error" class="error"></div>
-    </div>
-  </div>
+            // Update map
+            if (data.location && data.location.lat && data.location.lon) {
+                marker.setLatLng([data.location.lat, data.location.lon]);
+                map.setView([data.location.lat, data.location.lon]);
+            }
+        }
 
-  <audio id="alarm-audio" src=""></audio>
+        setInterval(fetchData, 1000);
 
-  <script src="app.js"></script>
+        // Walkie-talkie simulation
+        const talkButton = document.getElementById('talkButton');
+        const talkStatus = document.getElementById('talkStatus');
+        let talking = false;
+
+        talkButton.addEventListener('mousedown', () => {
+            talking = true;
+            talkStatus.innerText = 'Recording...';
+        });
+        talkButton.addEventListener('mouseup', () => {
+            talking = false;
+            talkStatus.innerText = 'Idle';
+            // For simulation, send dummy audio to server
+            fetch('http://10.0.0.75:5000/walkie', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({audio_bytes: Array(100).fill(0)})
+            });
+        });
+    </script>
 </body>
 </html>
