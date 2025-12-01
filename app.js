@@ -1,6 +1,6 @@
 // app.js
 // Change this if your server IP changes:
-const SERVER = "http://169.233.122.230";
+const SERVER = "http://169.233.122.23:5000";
 
 let map, marker;
 let fullHistory = [];
