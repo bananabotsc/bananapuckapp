@@ -10,6 +10,9 @@
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
 
+    <!-- Chart.js for history trends -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         body {
             margin: 0;
@@ -31,24 +34,72 @@
             width: 100%;
         }
 
-        .container {
+        .layout {
             padding: 16px;
+        }
+
+        .alert-box {
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert-ok {
+            background: #e5ffe7;
+            border: 1px solid #8bc34a;
+            color: #2e7d32;
+        }
+
+        .alert-warning {
+            background: #fff8e1;
+            border: 1px solid #ffb300;
+            color: #ff6f00;
+        }
+
+        .alert-critical {
+            background: #ffebee;
+            border: 1px solid #e53935;
+            color: #b71c1c;
+        }
+
+        .call-btn {
+            background: #ffca28;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .grid-section-title {
+            margin: 12px 4px 6px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
         }
 
         .sensor-box {
             background: #fff;
             border: 1px solid #fff7b3;
             border-radius: 10px;
-            padding: 12px 14px;
+            padding: 10px 12px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            cursor: pointer;
         }
 
         .sensor-box h3 {
             margin: 0 0 6px 0;
-            font-size: 16px;
+            font-size: 15px;
         }
 
         .sensor-box p {
@@ -57,90 +108,218 @@
         }
 
         .small {
-            font-size: 14px;
+            font-size: 13px;
             color: #666;
+        }
+
+        .audio-section {
+            margin-top: 24px;
+        }
+
+        .audio-item {
+            background: #fff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            border: 1px solid #eee;
+        }
+
+        /* Modal for history */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 10px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 90%;
+            overflow: auto;
+            padding: 16px 18px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close-btn {
+            cursor: pointer;
+            font-size: 22px;
+            line-height: 22px;
+            border: none;
+            background: none;
+        }
+
+        .modal-controls {
+            margin: 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px 8px;
+            text-align: left;
+        }
+
+        th {
+            background: #f7f7f7;
         }
     </style>
 </head>
 <body>
     <header>BananaPuck Live Dashboard</header>
 
-    <!-- Live Map -->
     <div id="map"></div>
 
-    <!-- Sensor Grid -->
-    <div class="container">
-        <div class="sensor-box">
-            <h3>Heart Rate</h3>
-            <p id="heartRate">-- bpm</p>
+    <div class="layout">
+
+        <!-- ALERT BOX -->
+        <div id="alertBox" class="alert-box alert-ok">
+            <span id="alertText">All good.</span>
+            <button id="callUserBtn" class="call-btn">Call User (Vibrate)</button>
         </div>
 
-        <div class="sensor-box">
-            <h3>Respiration</h3>
-            <p id="respirationRate">-- breaths/min</p>
+        <!-- VITALS -->
+        <div class="grid-section-title">Vitals</div>
+        <div class="grid">
+            <div class="sensor-box vital-card" data-metric="hr" data-label="Heart Rate (bpm)">
+                <h3>Heart Rate</h3>
+                <p id="heartRate">-- bpm</p>
+                <p class="small">Click for history</p>
+            </div>
+
+            <div class="sensor-box vital-card" data-metric="breathing" data-label="Respiration (breaths/min)">
+                <h3>Respiration</h3>
+                <p id="respirationRate">-- breaths/min</p>
+                <p class="small">Click for history</p>
+            </div>
+
+            <div class="sensor-box vital-card" data-metric="temp" data-label="Temperature (°C)">
+                <h3>Temperature</h3>
+                <p id="temperature">-- °C</p>
+                <p class="small">Click for history</p>
+            </div>
+
+            <div class="sensor-box vital-card" data-metric="water_submerged" data-label="Water Submerged">
+                <h3>Water</h3>
+                <p id="waterSub">--</p>
+                <p class="small">Click for history</p>
+            </div>
         </div>
 
-        <div class="sensor-box">
-            <h3>Temperature</h3>
-            <p id="temperature">-- °C</p>
+        <!-- MOTION -->
+        <div class="grid-section-title">Motion & Orientation</div>
+        <div class="grid">
+            <div class="sensor-box vital-card" data-metric="orientation" data-label="Orientation">
+                <h3>Orientation</h3>
+                <p id="roll">Roll: --</p>
+                <p id="pitch">Pitch: --</p>
+                <p id="yaw">Yaw: --</p>
+                <p class="small">Click for history</p>
+            </div>
+
+            <div class="sensor-box vital-card" data-metric="accel" data-label="Acceleration">
+                <h3>Acceleration</h3>
+                <p id="accelX">X: --</p>
+                <p id="accelY">Y: --</p>
+                <p id="accelZ">Z: --</p>
+                <p class="small">Click for history</p>
+            </div>
+
+            <div class="sensor-box vital-card" data-metric="gyro" data-label="Gyroscope">
+                <h3>Gyroscope</h3>
+                <p id="gyroX">X: --</p>
+                <p id="gyroY">Y: --</p>
+                <p id="gyroZ">Z: --</p>
+                <p class="small">Click for history</p>
+            </div>
         </div>
 
-        <div class="sensor-box">
-            <h3>Water Submergence</h3>
-            <p id="waterSub">--</p>
+        <!-- ENVIRONMENT / POSITION -->
+        <div class="grid-section-title">Environment & Position</div>
+        <div class="grid">
+            <div class="sensor-box vital-card" data-metric="distance_m" data-label="LiDAR Distance (m)">
+                <h3>LiDAR Distance</h3>
+                <p id="lidarDist">-- m</p>
+                <p class="small">Click for history</p>
+            </div>
+
+            <div class="sensor-box vital-card" data-metric="gps" data-label="GPS">
+                <h3>GPS</h3>
+                <p id="gpsLat">Lat: --</p>
+                <p id="gpsLon">Lon: --</p>
+                <p id="gpsAcc">Accuracy: -- m</p>
+                <p class="small">Click for history</p>
+            </div>
+
+            <div class="sensor-box">
+                <h3>ECG</h3>
+                <p id="ecgVal">--</p>
+            </div>
+
+            <div class="sensor-box">
+                <h3>Last Update</h3>
+                <p id="lastUpdate" class="small">--</p>
+            </div>
         </div>
 
-        <div class="sensor-box">
-            <h3>Orientation</h3>
-            <p id="roll">Roll: --</p>
-            <p id="pitch">Pitch: --</p>
-            <p id="yaw">Yaw: --</p>
+        <!-- AUDIO CLIPS -->
+        <div class="audio-section">
+            <h3>Walkie-Talkie Clips</h3>
+            <div id="audioList"></div>
         </div>
+    </div>
 
-        <div class="sensor-box">
-            <h3>Acceleration</h3>
-            <p id="accelX">X: --</p>
-            <p id="accelY">Y: --</p>
-            <p id="accelZ">Z: --</p>
-        </div>
+    <!-- HISTORY MODAL -->
+    <div id="historyModalOverlay" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">History</h2>
+                <button id="closeModalBtn" class="close-btn">&times;</button>
+            </div>
 
-        <div class="sensor-box">
-            <h3>Gyroscope</h3>
-            <p id="gyroX">X: --</p>
-            <p id="gyroY">Y: --</p>
-            <p id="gyroZ">Z: --</p>
-        </div>
+            <div class="modal-controls">
+                <label for="historyWindow">Time window:</label>
+                <select id="historyWindow">
+                    <option value="12">Last 12 hours</option>
+                    <option value="24">Last day</option>
+                    <option value="168">Last week</option>
+                    <option value="720">Last month</option>
+                </select>
+            </div>
 
-        <div class="sensor-box">
-            <h3>LiDAR Distance</h3>
-            <p id="lidarDist">-- m</p>
-        </div>
+            <canvas id="historyChart" height="120"></canvas>
 
-        <div class="sensor-box">
-            <h3>GPS</h3>
-            <p id="gpsLat">Lat: --</p>
-            <p id="gpsLon">Lon: --</p>
-            <p id="gpsAcc">Accuracy: -- m</p>
-        </div>
-
-        <div class="sensor-box">
-            <h3>ECG</h3>
-            <p id="ecgVal">--</p>
-        </div>
-
-        <div class="sensor-box">
-            <h3>Actuator</h3>
-            <p id="actuatorEvent">--</p>
-        </div>
-
-        <div class="sensor-box">
-            <h3>Audio Status</h3>
-            <p id="audioStatus">Idle</p>
-        </div>
-
-        <div class="sensor-box">
-            <h3>Last Update</h3>
-            <p id="lastUpdate" class="small">--</p>
+            <table id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 
