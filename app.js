@@ -1,12 +1,13 @@
 // app.js
 // Change this if your server IP changes:
-const SERVER = "http://10.0.0.75:5000";
+const SERVER = "http://169.233.122.230";
 
 let map, marker;
 let fullHistory = [];
 let activeMetric = null;
 let activeMetricLabel = "";
 let historyChart = null;
+let alertsMode = "active"; // "active" or "history"
 
 // ---------- MAP SETUP ----------
 window.addEventListener("load", () => {
@@ -174,7 +175,7 @@ async function fetchHistory() {
 // ---------- FETCH ALERTS ----------
 async function fetchAlerts() {
     try {
-        const res = await fetch(`${SERVER}/alerts`);
+        const res = await fetch(`${SERVER}/alerts?mode=${alertsMode}`);
         const alerts = await res.json();
 
         const container = document.getElementById("alertsContainer");
@@ -185,7 +186,7 @@ async function fetchAlerts() {
         if (!alerts || alerts.length === 0) {
             const box = document.createElement("div");
             box.className = "alert-box alert-ok";
-            box.textContent = "No active alerts.";
+            box.textContent = alertsMode === "active" ? "No active alerts." : "No alerts recorded yet.";
             container.appendChild(box);
             return;
         }
@@ -224,14 +225,18 @@ async function fetchAlerts() {
             left.appendChild(countLine);
             left.appendChild(timesLine);
 
-            const dismissBtn = document.createElement("button");
-            dismissBtn.className = "dismiss-btn";
-            dismissBtn.textContent = "✕";
-            dismissBtn.title = "Dismiss alert";
-            dismissBtn.addEventListener("click", () => dismissAlert(alert.id));
-
             box.appendChild(left);
-            box.appendChild(dismissBtn);
+
+            // Only show dismiss X for active alerts
+            if (alertsMode === "active") {
+                const dismissBtn = document.createElement("button");
+                dismissBtn.className = "dismiss-btn";
+                dismissBtn.textContent = "✕";
+                dismissBtn.title = "Dismiss alert";
+                dismissBtn.addEventListener("click", () => dismissAlert(alert.id));
+                box.appendChild(dismissBtn);
+            }
+
             container.appendChild(box);
         });
     } catch (err) {
@@ -249,6 +254,15 @@ async function dismissAlert(id) {
         fetchAlerts();
     } catch (err) {
         console.error("Error dismissing alert:", err);
+    }
+}
+
+async function clearAlerts() {
+    try {
+        await fetch(`${SERVER}/clear_alerts`, { method: "POST" });
+        fetchAlerts();
+    } catch (err) {
+        console.error("Error clearing alerts:", err);
     }
 }
 
@@ -281,7 +295,7 @@ async function fetchAudioList() {
     }
 }
 
-// ---------- INTERACTIONS (call user, history modal) ----------
+// ---------- INTERACTIONS (call user, history modal, alerts mode) ----------
 function setupInteractions() {
     const callBtn = document.getElementById("callUserBtn");
     if (callBtn) {
@@ -292,6 +306,28 @@ function setupInteractions() {
             } catch (err) {
                 console.error("Error calling user:", err);
             }
+        });
+    }
+
+    const clearBtn = document.getElementById("clearAlertsBtn");
+    if (clearBtn) {
+        clearBtn.addEventListener("click", clearAlerts);
+    }
+
+    const activeBtn = document.getElementById("activeAlertsBtn");
+    const historyBtn = document.getElementById("historyAlertsBtn");
+    if (activeBtn && historyBtn) {
+        activeBtn.addEventListener("click", () => {
+            alertsMode = "active";
+            activeBtn.classList.add("selected");
+            historyBtn.classList.remove("selected");
+            fetchAlerts();
+        });
+        historyBtn.addEventListener("click", () => {
+            alertsMode = "history";
+            historyBtn.classList.add("selected");
+            activeBtn.classList.remove("selected");
+            fetchAlerts();
         });
     }
 

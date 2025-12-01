@@ -43,11 +43,19 @@
             justify-content: space-between;
             align-items: center;
             margin: 8px 4px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .alerts-label {
             font-size: 16px;
             font-weight: bold;
+        }
+
+        .alerts-controls {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
         }
 
         .alert-box {
@@ -100,6 +108,30 @@
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
+        }
+
+        .clear-btn {
+            background: #e0e0e0;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .alerts-mode-btn {
+            background: #ffffff;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .alerts-mode-btn.selected {
+            border-color: #ffca28;
+            background: #fff7d1;
+            font-weight: bold;
         }
 
         .dismiss-btn {
@@ -198,7 +230,7 @@
 
         .modal-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: space_between;
             align-items: center;
         }
 
@@ -248,7 +280,12 @@
         <!-- ALERTS SECTION -->
         <div class="alerts-header-row">
             <div class="alerts-label">Alerts</div>
-            <button id="callUserBtn" class="call-btn">Call User (Vibrate)</button>
+            <div class="alerts-controls">
+                <button id="activeAlertsBtn" class="alerts-mode-btn selected">Active</button>
+                <button id="historyAlertsBtn" class="alerts-mode-btn">History</button>
+                <button id="clearAlertsBtn" class="clear-btn">Clear Active</button>
+                <button id="callUserBtn" class="call-btn">Call User (Vibrate)</button>
+            </div>
         </div>
         <div id="alertsContainer"></div>
 
