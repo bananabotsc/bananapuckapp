@@ -5,149 +5,196 @@
   <title>BananaPuck Live Dashboard</title>
 
   <!-- Leaflet -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
-  <link rel="stylesheet" href="styles.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+    }
+
+    /* HEADER */
+    header {
+      background: #f5c400;
+      color: white;
+      text-align: center;
+      padding: 30px 10px;
+      font-size: 36px;
+      font-weight: bold;
+    }
+
+    section {
+      padding: 25px;
+    }
+
+    h2 {
+      margin-bottom: 15px;
+    }
+
+    /* GRID */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    /* SENSOR CARD */
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+    }
+
+    .safe { background: #e7f6ea; }
+    .warning { background: #fff6d8; }
+    .danger { background: #fdeaea; }
+
+    .value {
+      font-size: 22px;
+      margin-top: 10px;
+    }
+
+    /* MODAL */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: white;
+      width: 85%;
+      max-height: 85%;
+      overflow-y: auto;
+      border-radius: 16px;
+      padding: 25px;
+    }
+
+    .modal h3 {
+      margin-top: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background: #f5f5f5;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+
+    #map {
+      height: 300px;
+      border-radius: 12px;
+    }
+  </style>
 </head>
 
 <body>
-  <header class="header">
-    BananaPuck Live Dashboard
-  </header>
+  <header>BananaPuck Live Dashboard</header>
 
-  <!-- MAP -->
-  <section id="map-section">
-    <div id="map"></div>
-  </section>
-
-  <!-- ALERTS -->
-  <section class="panel">
-    <h2>Alerts</h2>
-    <div class="alert-controls">
-      <button onclick="showActiveAlerts()">Active</button>
-      <button onclick="showAlertHistory()">History</button>
-      <button onclick="clearActiveAlerts()">Clear Active</button>
-      <button onclick="callUser()">Call User (Vibrate)</button>
-      <select id="alertRange">
-        <option>Last hour</option>
-        <option>Last 12 hours</option>
-        <option>Last day</option>
-        <option>Last week</option>
-        <option>Last month</option>
-      </select>
-    </div>
-    <div id="alerts-container"></div>
-  </section>
-
-  <!-- VITALS -->
-  <section class="panel">
+  <section>
     <h2>Vitals</h2>
-    <div class="card-grid">
-      <div class="card" onclick="openHistory('hr')">
-        <h3>Heart Rate</h3>
-        <div id="hr">--</div>
+    <div class="grid">
+      <div class="card" id="hrCard" onclick="openModal('Heart Rate', 'hr')">
+        <strong>Heart Rate</strong>
+        <div class="value" id="hrValue">-- bpm</div>
       </div>
 
-      <div class="card" onclick="openHistory('breathing')">
-        <h3>Respiration</h3>
-        <div id="breathing">--</div>
+      <div class="card" id="brCard" onclick="openModal('Respiration', 'breathing')">
+        <strong>Respiration</strong>
+        <div class="value" id="brValue">-- breaths/min</div>
       </div>
 
-      <div class="card" onclick="openHistory('temp')">
-        <h3>Temperature</h3>
-        <div id="temp">--</div>
-      </div>
-
-      <div class="card" onclick="openHistory('ecg')">
-        <h3>ECG</h3>
-        <div id="ecg">--</div>
+      <div class="card" id="tempCard" onclick="openModal('Temperature', 'temp')">
+        <strong>Temperature</strong>
+        <div class="value" id="tempValue">-- °F</div>
       </div>
     </div>
   </section>
 
-  <!-- MOTION -->
-  <section class="panel">
+  <section>
     <h2>Motion & Orientation</h2>
-
-    <div class="card-grid">
-      <div class="card" onclick="openHistory('accel')">
-        <h3>Acceleration</h3>
-        <div>X: <span id="ax">--</span></div>
-        <div>Y: <span id="ay">--</span></div>
-        <div>Z: <span id="az">--</span></div>
-      </div>
-
-      <div class="card" onclick="openHistory('gyro')">
-        <h3>Gyroscope</h3>
-        <div>X: <span id="gx">--</span></div>
-        <div>Y: <span id="gy">--</span></div>
-        <div>Z: <span id="gz">--</span></div>
-      </div>
-
-      <div class="card" onclick="openHistory('orientation')">
-        <h3>Orientation</h3>
-        <div>Roll: <span id="roll">--</span></div>
-        <div>Pitch: <span id="pitch">--</span></div>
-        <div>Yaw: <span id="yaw">--</span></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ENVIRONMENT -->
-  <section class="panel">
-    <h2>Environment & Position</h2>
-
-    <div class="card-grid">
-      <div class="card" onclick="openHistory('gps')">
-        <h3>GPS</h3>
-        <div>Lat: <span id="lat">--</span></div>
-        <div>Lon: <span id="lon">--</span></div>
-        <div>Accuracy: <span id="gps-acc">--</span></div>
-      </div>
-
-      <div class="card" onclick="openHistory('water')">
-        <h3>Water Submergence</h3>
-        <div id="water">--</div>
+    <div class="grid">
+      <div class="card">
+        <strong>Acceleration</strong>
+        <div class="value" id="accelValue">--</div>
       </div>
 
       <div class="card">
-        <h3>Last Update</h3>
-        <div id="lastUpdate">--</div>
+        <strong>Gyroscope</strong>
+        <div class="value" id="gyroValue">--</div>
       </div>
     </div>
   </section>
 
-  <!-- LOCATION MAPPING MODAL -->
-  <div id="mappingModal" class="modal hidden">
+  <section>
+    <h2>Environment & Position</h2>
+    <div class="grid">
+      <div class="card">
+        <strong>GPS</strong>
+        <div class="value" id="gpsValue">--</div>
+      </div>
+
+      <div class="card">
+        <strong>Water Submergence</strong>
+        <div class="value" id="waterValue">--</div>
+      </div>
+
+      <div class="card">
+        <strong>Location Mapping</strong>
+        <div id="map"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODAL -->
+  <div class="modal" id="modal">
     <div class="modal-content">
-      <h2>Map Out New Location</h2>
-      <input id="locationName" placeholder="Home, Living Room…" />
-      <ol>
-        <li>Start at the front door</li>
-        <li>Hold phone at chest height</li>
-        <li>Photo every 3–6 steps</li>
-        <li>Extra photos at corners</li>
-        <li>Bottom / middle / top of stairs</li>
-      </ol>
-      <input type="file" multiple />
-      <button>Upload Photos</button>
-      <button onclick="closeMapping()">Close</button>
+      <h3 id="modalTitle"></h3>
+      <canvas id="chart"></canvas>
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <button onclick="closeModal()">Close</button>
     </div>
   </div>
 
-  <!-- HISTORY MODAL -->
-  <div id="historyModal" class="modal hidden">
-    <div class="modal-content">
-      <h2 id="historyTitle"></h2>
-      <canvas id="historyChart"></canvas>
-      <button onclick="closeHistory()">Close</button>
-    </div>
-  </div>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
