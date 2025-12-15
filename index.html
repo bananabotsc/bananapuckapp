@@ -2,140 +2,148 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>BananaPuck Dashboard</title>
+  <title>BananaPuck Live Dashboard</title>
 
   <!-- Leaflet -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    defer
-  ></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+  <!-- Styles -->
   <link rel="stylesheet" href="styles.css" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+    }
+
+    header {
+      background: #f2c94c;
+      padding: 14px;
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    #map {
+      height: 350px;
+      width: 100%;
+    }
+
+    .container {
+      padding: 16px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      margin: 16px 0 8px;
+      font-weight: bold;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .card h3 {
+      margin: 0 0 6px;
+      font-size: 16px;
+    }
+
+    .value {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .alerts {
+      background: #fff3f3;
+      border-left: 6px solid #e74c3c;
+    }
+
+    .alert-item {
+      background: #fde2e2;
+      padding: 8px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      background: #f2c94c;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
 </head>
 
 <body>
+  <header>BananaPuck Live Dashboard</header>
 
   <!-- MAP -->
-  <div id="map" class="map"></div>
+  <div id="map"></div>
 
-  <!-- ALERTS -->
-  <section class="alerts">
-    <h2>Alerts</h2>
-    <div class="alert-controls">
-      <button id="activeAlertsBtn" class="selected">Active</button>
-      <button id="historyAlertsBtn">History</button>
-      <button id="clearAlertsBtn">Clear Active</button>
-      <button id="callUserBtn">Call User (Vibrate)</button>
-    </div>
-    <div id="alertsContainer"></div>
-  </section>
-
-  <!-- SENSOR GRID -->
-  <section class="grid">
-
-    <div class="sensor-box" data-metric="hr" data-label="Heart Rate">
-      <h3>Heart Rate</h3>
-      <p><span id="heartRate">--</span> bpm</p>
+  <div class="container">
+    <!-- ALERTS -->
+    <div class="section-title">Alerts</div>
+    <div class="card alerts">
+      <div id="activeAlerts">No active alerts</div>
     </div>
 
-    <div class="sensor-box" data-metric="breathing" data-label="Respiration">
-      <h3>Respiration</h3>
-      <p><span id="respirationRate">--</span> breaths/min</p>
-    </div>
-
-    <div class="sensor-box" data-metric="temp" data-label="Temperature">
-      <h3>Temperature</h3>
-      <p><span id="temperature">--</span> °C</p>
-    </div>
-
-    <div class="sensor-box" data-metric="orientation" data-label="Orientation">
-      <h3>Orientation</h3>
-      <p>Roll: <span id="roll">--</span></p>
-      <p>Pitch: <span id="pitch">--</span></p>
-      <p>Yaw: <span id="yaw">--</span></p>
-    </div>
-
-    <div class="sensor-box" data-metric="accel" data-label="Acceleration">
-      <h3>Acceleration</h3>
-      <p id="accelX">X: --</p>
-      <p id="accelY">Y: --</p>
-      <p id="accelZ">Z: --</p>
-    </div>
-
-    <div class="sensor-box" data-metric="gyro" data-label="Gyroscope">
-      <h3>Gyroscope</h3>
-      <p id="gyroX">X: --</p>
-      <p id="gyroY">Y: --</p>
-      <p id="gyroZ">Z: --</p>
-    </div>
-
-    <div class="sensor-box" data-metric="gps" data-label="GPS">
-      <h3>GPS</h3>
-      <p>Lat: <span id="gpsLat">--</span></p>
-      <p>Lon: <span id="gpsLon">--</span></p>
-      <p>Acc: <span id="gpsAcc">--</span> m</p>
-    </div>
-
-    <div class="sensor-box" data-metric="water_submerged" data-label="Water">
-      <h3>Water</h3>
-      <p><span id="waterSub">--</span></p>
-    </div>
-
-  </section>
-
-  <!-- MAP LOCATION SECTION -->
-  <section class="mapping">
-    <h2>Location Mapping</h2>
-    <button id="btnMapNewLocation">Map out new location</button>
-  </section>
-
-  <!-- HISTORY MODAL -->
-  <div id="historyModalOverlay" class="modal hidden">
-    <div class="modal-box">
-      <h3 id="modalTitle"></h3>
-      <select id="historyWindow">
-        <option value="1">1 hour</option>
-        <option value="6">6 hours</option>
-        <option value="24" selected>24 hours</option>
-      </select>
-
-      <canvas id="historyChart"></canvas>
-
-      <table>
-        <thead>
-          <tr><th>Time</th><th>Value</th></tr>
-        </thead>
-        <tbody id="historyTableBody"></tbody>
-      </table>
-
-      <button id="closeModalBtn">Close</button>
-    </div>
-  </div>
-
-  <!-- MAPPING MODAL -->
-  <div id="mappingModal" class="modal hidden">
-    <div class="modal-box">
-      <h3>Map New Location</h3>
-
-      <input id="locationName" placeholder="Location name" />
-      <button id="createLocationBtn">Start Mapping</button>
-
-      <div id="mappingStep" class="hidden">
-        <input type="file" id="photoInput" multiple />
-        <button id="uploadPhotosBtn">Upload Photos</button>
+    <!-- VITALS -->
+    <div class="section-title">Vitals</div>
+    <div class="grid">
+      <div class="card">
+        <h3>Heart Rate</h3>
+        <div class="value" id="hr">--</div>
       </div>
+      <div class="card">
+        <h3>Respiration</h3>
+        <div class="value" id="breathing">--</div>
+      </div>
+      <div class="card">
+        <h3>Temperature</h3>
+        <div class="value" id="temp">--</div>
+      </div>
+    </div>
 
-      <p id="mappingStatus"></p>
-      <div id="photoGallery"></div>
+    <!-- MOTION -->
+    <div class="section-title">Motion</div>
+    <div class="grid">
+      <div class="card">
+        <h3>Acceleration</h3>
+        X: <span id="ax">--</span><br />
+        Y: <span id="ay">--</span><br />
+        Z: <span id="az">--</span>
+      </div>
+      <div class="card">
+        <h3>Gyroscope</h3>
+        X: <span id="gx">--</span><br />
+        Y: <span id="gy">--</span><br />
+        Z: <span id="gz">--</span>
+      </div>
+    </div>
 
-      <button id="closeMappingModal">Close</button>
+    <!-- GPS -->
+    <div class="section-title">GPS</div>
+    <div class="card">
+      Lat: <span id="lat">--</span><br />
+      Lon: <span id="lon">--</span><br />
+      Accuracy: <span id="acc">--</span>
     </div>
   </div>
 
