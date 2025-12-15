@@ -1,130 +1,123 @@
-// ---------------------------
-// CONFIG
-// ---------------------------
-const SERVER_IP = "http://192.168.137.1:5000";   // ← your PC hotspot IP
+// ===========================
+// CONFIG (FIXED)
+// ===========================
+const SERVER_BASE = "https://bananapuck-server.onrender.com";
+console.log("Using SERVER_BASE:", SERVER_BASE);
 
-// ---------------------------
+// ===========================
 // DOM ELEMENTS
-// ---------------------------
+// ===========================
 const elements = {
-    hr: document.getElementById("hr_val"),
-    respiration: document.getElementById("respiration_val"),
-    temperature: document.getElementById("temp_val"),
-    water: document.getElementById("water_val"),
-    distance: document.getElementById("distance_val"),
+  hr: document.getElementById("heartRate"),
+  respiration: document.getElementById("respirationRate"),
+  temperature: document.getElementById("temperature"),
+  water: document.getElementById("waterSub"),
+  distance: document.getElementById("lidarDist"),
 
-    accel_x: document.getElementById("accel_x"),
-    accel_y: document.getElementById("accel_y"),
-    accel_z: document.getElementById("accel_z"),
+  accel_x: document.getElementById("accelX"),
+  accel_y: document.getElementById("accelY"),
+  accel_z: document.getElementById("accelZ"),
 
-    gyro_x: document.getElementById("gyro_x"),
-    gyro_y: document.getElementById("gyro_y"),
-    gyro_z: document.getElementById("gyro_z"),
+  gyro_x: document.getElementById("gyroX"),
+  gyro_y: document.getElementById("gyroY"),
+  gyro_z: document.getElementById("gyroZ"),
 
-    roll: document.getElementById("roll_val"),
-    pitch: document.getElementById("pitch_val"),
-    yaw: document.getElementById("yaw_val"),
+  roll: document.getElementById("roll"),
+  pitch: document.getElementById("pitch"),
+  yaw: document.getElementById("yaw"),
 
-    lat: document.getElementById("lat_val"),
-    lon: document.getElementById("lon_val"),
-    gps_accuracy: document.getElementById("gps_accuracy"),
+  lat: document.getElementById("gpsLat"),
+  lon: document.getElementById("gpsLon"),
+  gps_accuracy: document.getElementById("gpsAcc"),
 
-    alerts_list: document.getElementById("alerts_list"),
-    clearAlertsBtn: document.getElementById("clear_alerts")
+  lastUpdate: document.getElementById("lastUpdate"),
+
+  alertsContainer: document.getElementById("alertsContainer"),
+  clearAlertsBtn: document.getElementById("clearAlertsBtn"),
+  activeAlertsBtn: document.getElementById("activeAlertsBtn"),
+  historyAlertsBtn: document.getElementById("historyAlertsBtn"),
+  callUserBtn: document.getElementById("callUserBtn"),
 };
 
-// ---------------------------
+// ===========================
 // LEAFLET MAP
-// ---------------------------
+// ===========================
 let map = L.map("map").setView([37.42, -122.08], 16);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 let marker = L.marker([37.42, -122.08]).addTo(map);
 
-// ---------------------------
-// UPDATE DASHBOARD LOOP
-// ---------------------------
+// ===========================
+// FETCH LOOP (FIXED)
+// ===========================
 async function fetchData() {
-    try {
-        let r = await fetch(`${SERVER_IP}/get_data`);
-        let data = await r.json();
+  try {
+    const r = await fetch(`${SERVER_BASE}/get_data`, { cache: "no-store" });
 
-        updateUI(data);
-        updateAlerts(data.alerts_active);
-
-    } catch (err) {
-        console.log("Error fetching:", err);
+    if (!r.ok) {
+      console.error("GET /get_data failed:", r.status);
+      return;
     }
+
+    const data = await r.json();
+    console.log("Live data:", data);
+
+    updateUI(data);
+  } catch (err) {
+    console.error("Fetch error:", err);
+  }
 }
 
+fetchData();
 setInterval(fetchData, 1000);
 
-// ---------------------------
-// UPDATE UI ELEMENTS
-// ---------------------------
+// ===========================
+// UPDATE UI
+// ===========================
 function updateUI(d) {
-    elements.hr.textContent = d.hr ?? "--";
-    elements.respiration.textContent = d.breathing ?? "--";
-    elements.temperature.textContent = d.temp ?? "--";
-    elements.water.textContent = d.water_submerged ? "YES" : "NO";
-    elements.distance.textContent = d.distance_m ?? "--";
+  if (!d) return;
 
-    elements.accel_x.textContent = d.accel?.x ?? "--";
-    elements.accel_y.textContent = d.accel?.y ?? "--";
-    elements.accel_z.textContent = d.accel?.z ?? "--";
+  elements.hr.textContent = d.hr ?? "--";
+  elements.respiration.textContent = d.breathing ?? "--";
+  elements.temperature.textContent = d.temp ?? "--";
+  elements.water.textContent = d.water_submerged ? "YES" : "NO";
 
-    elements.gyro_x.textContent = d.gyro?.x ?? "--";
-    elements.gyro_y.textContent = d.gyro?.y ?? "--";
-    elements.gyro_z.textContent = d.gyro?.z ?? "--";
+  if (d.accel) {
+    elements.accel_x.textContent = `X: ${d.accel.x.toFixed(2)}`;
+    elements.accel_y.textContent = `Y: ${d.accel.y.toFixed(2)}`;
+    elements.accel_z.textContent = `Z: ${d.accel.z.toFixed(2)}`;
+  }
 
-    elements.roll.textContent = d.orientation[0];
-    elements.pitch.textContent = d.orientation[1];
-    elements.yaw.textContent = d.orientation[2];
+  if (d.gyro) {
+    elements.gyro_x.textContent = `X: ${d.gyro.x.toFixed(2)}`;
+    elements.gyro_y.textContent = `Y: ${d.gyro.y.toFixed(2)}`;
+    elements.gyro_z.textContent = `Z: ${d.gyro.z.toFixed(2)}`;
+  }
 
+  if (Array.isArray(d.orientation) && d.orientation.length === 3) {
+    elements.roll.textContent = d.orientation[0].toFixed(1);
+    elements.pitch.textContent = d.orientation[1].toFixed(1);
+    elements.yaw.textContent = d.orientation[2].toFixed(1);
+  }
+
+  if (d.gps) {
     elements.lat.textContent = d.gps.lat ?? "--";
     elements.lon.textContent = d.gps.lon ?? "--";
     elements.gps_accuracy.textContent = d.gps.accuracy ?? "--";
 
-    // Update map
     if (d.gps.lat && d.gps.lon) {
-        marker.setLatLng([d.gps.lat, d.gps.lon]);
-        map.setView([d.gps.lat, d.gps.lon]);
+      marker.setLatLng([d.gps.lat, d.gps.lon]);
+      map.setView([d.gps.lat, d.gps.lon], map.getZoom());
     }
+  }
+
+  if (d.last_update) {
+    elements.lastUpdate.textContent = new Date(d.last_update * 1000).toLocaleString();
+  }
 }
 
-// ---------------------------
-// ALERT SYSTEM
-// ---------------------------
-
-function updateAlerts(alerts) {
-    elements.alerts_list.innerHTML = "";
-
-    alerts.forEach(alert => {
-        const div = document.createElement("div");
-        div.className = "alert-box " + alert.level.toLowerCase();
-        div.innerHTML = `
-            <strong>${alert.title}</strong><br>
-            ${alert.message}<br>
-            <small>${new Date(alert.time).toLocaleTimeString()}</small>
-            <button class="dismiss-btn" data-id="${alert.id}">X</button>
-        `;
-        elements.alerts_list.appendChild(div);
-    });
-
-    // Add dismiss handlers
-    document.querySelectorAll(".dismiss-btn").forEach(btn => {
-        btn.onclick = () => dismissAlert(btn.dataset.id);
-    });
-}
-
-async function dismissAlert(id) {
-    await fetch(`${SERVER_IP}/dismiss_alert`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ id })
-    });
-}
-
-// CLEAR ALL ALERTS
-elements.clearAlertsBtn.onclick = async () => {
-    await fetch(`${SERVER_IP}/clear_alerts`, { method: "POST" });
+// ===========================
+// BUTTON STUB
+// ===========================
+elements.callUserBtn.onclick = () => {
+  alert("Vibration command would be sent here.");
 };

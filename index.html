@@ -12,21 +12,25 @@
 
     <!-- Chart.js for history trends -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Time adapter so Chart.js can handle dates -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
     <style>
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f7f7f7; /* very light grey */
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                sans-serif;
+            background: #f7f7f7;
             color: #333;
         }
 
         header {
-            background-color: #fff7b3; /* pastel yellow */
-            padding: 16px;
-            text-align: center;
+            background: linear-gradient(90deg, #ffca28, #ffe082);
+            padding: 14px 16px;
             font-size: 22px;
             font-weight: bold;
+            text-align: center;
+            border-bottom: 1px solid #f1b000;
         }
 
         #map {
@@ -35,51 +39,94 @@
         }
 
         .layout {
+            display: grid;
+            grid-template-columns: minmax(320px, 0.9fr) minmax(400px, 1.1fr);
+            gap: 16px;
             padding: 16px;
         }
 
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Alerts column */
         .alerts-header-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin: 8px 4px;
-            gap: 8px;
-            flex-wrap: wrap;
+            margin-bottom: 8px;
         }
 
         .alerts-label {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
         }
 
         .alerts-controls {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
-        .alert-box {
-            border-radius: 10px;
-            padding: 10px 12px;
-            margin-bottom: 10px;
-            font-size: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+        .alerts-mode-btn {
+            border: 1px solid #ccc;
+            background: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
         }
 
-        .alert-left {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .alert-title {
+        .alerts-mode-btn.selected {
+            border-color: #ffca28;
+            background: #fff7d1;
             font-weight: bold;
         }
 
-        .alert-times {
+        .clear-btn {
+            background: #ffe0e0;
+            border: 1px solid #ff9d9d;
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
             font-size: 13px;
+        }
+
+        .call-btn {
+            background: #ffca28;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        #alertsContainer {
+            margin-bottom: 16px;
+        }
+
+        .alert-box {
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .alert-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .alert-message {
+            margin-bottom: 4px;
+        }
+
+        .alert-times {
+            font-size: 12px;
             color: #555;
         }
 
@@ -99,39 +146,6 @@
             background: #ffebee;
             border: 1px solid #e53935;
             color: #b71c1c;
-        }
-
-        .call-btn {
-            background: #ffca28;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .clear-btn {
-            background: #e0e0e0;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        .alerts-mode-btn {
-            background: #ffffff;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            padding: 6px 10px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        .alerts-mode-btn.selected {
-            border-color: #ffca28;
-            background: #fff7d1;
-            font-weight: bold;
         }
 
         .dismiss-btn {
@@ -157,240 +171,235 @@
 
         .sensor-box {
             background: #fff;
-            border: 1px solid #fff7b3;
             border-radius: 10px;
             padding: 10px 12px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-            cursor: pointer;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .sensor-box.vital-card {
+            border-left: 4px solid #ffca28;
         }
 
         .sensor-box h3 {
-            margin: 0 0 6px 0;
+            margin: 0 0 4px 0;
             font-size: 15px;
         }
 
         .sensor-box p {
-            margin: 0;
-            font-size: 18px;
+            margin: 2px 0;
         }
 
-        .small {
-            font-size: 13px;
+        .sensor-box .small {
+            font-size: 12px;
             color: #666;
         }
 
-        /* Card state colors */
-        .card-ok {
-            border-color: #c8e6c9;
-            background: #f1fff2;
+        .sensor-box[data-metric] {
+            cursor: pointer;
         }
 
-        .card-warning {
-            border-color: #ffecb3;
-            background: #fff8e1;
+        .sensor-box[data-metric]:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
         }
 
-        .card-critical {
-            border-color: #ef9a9a;
-            background: #ffebee;
-        }
-
-        .audio-section {
-            margin-top: 24px;
-        }
-
-        .audio-item {
-            background: #fff;
-            border-radius: 8px;
-            padding: 8px 10px;
-            margin-bottom: 8px;
-            border: 1px solid #eee;
-        }
-
-        /* Modal for history */
-        .modal-overlay {
+        /* History modal */
+        #historyModalOverlay {
+            display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.4);
-            display: none;
-            align-items: center;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
             justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal {
-            background: #fff;
-            border-radius: 10px;
-            max-width: 900px;
-            width: 90%;
-            max-height: 90%;
-            overflow: auto;
-            padding: 16px 18px;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space_between;
             align-items: center;
         }
 
-        .modal-header h2 {
-            margin: 0;
+        #historyModal {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 16px 18px;
+            width: 90%;
+            max-width: 950px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        .close-btn {
-            cursor: pointer;
-            font-size: 22px;
-            line-height: 22px;
+        #historyModal h2 {
+            margin: 0 0 8px 0;
+        }
+
+        #historyModalHeaderRow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #historyModalHeaderRow button {
             border: none;
-            background: none;
+            background: transparent;
+            font-size: 22px;
+            cursor: pointer;
         }
 
-        .modal-controls {
-            margin: 12px 0;
+        #historyControlsRow {
+            margin-top: 8px;
             display: flex;
             align-items: center;
             gap: 8px;
+            font-size: 14px;
         }
 
-        table {
+        #historyChart {
+            margin-top: 12px;
+            width: 100%;
+            height: 220px;
+        }
+
+        #historyTableWrapper {
+            margin-top: 12px;
+            overflow: auto;
+        }
+
+        #historyTable {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
         }
 
-        th, td {
+        #historyTable th,
+        #historyTable td {
             border: 1px solid #ddd;
-            padding: 6px 8px;
-            text-align: left;
+            padding: 4px 6px;
+            font-size: 12px;
         }
 
-        th {
-            background: #f7f7f7;
+        #historyTable th {
+            background: #fafafa;
         }
     </style>
 </head>
 <body>
     <header>BananaPuck Live Dashboard</header>
 
+    <!-- Big map at the top -->
     <div id="map"></div>
 
     <div class="layout">
 
-        <!-- ALERTS SECTION -->
-        <div class="alerts-header-row">
-            <div class="alerts-label">Alerts</div>
-            <div class="alerts-controls">
-                <button id="activeAlertsBtn" class="alerts-mode-btn selected">Active</button>
-                <button id="historyAlertsBtn" class="alerts-mode-btn">History</button>
-                <button id="clearAlertsBtn" class="clear-btn">Clear Active</button>
-                <button id="callUserBtn" class="call-btn">Call User (Vibrate)</button>
+        <!-- LEFT COLUMN: ALERTS -->
+        <div>
+            <div class="alerts-header-row">
+                <div class="alerts-label">Alerts</div>
+                <div class="alerts-controls">
+                    <button id="activeAlertsBtn" class="alerts-mode-btn selected">Active</button>
+                    <button id="historyAlertsBtn" class="alerts-mode-btn">History</button>
+                    <button id="clearAlertsBtn" class="clear-btn">Clear Active</button>
+                    <button id="callUserBtn" class="call-btn">Call User (Vibrate)</button>
+                </div>
             </div>
-        </div>
-        <div id="alertsContainer"></div>
-
-        <!-- VITALS -->
-        <div class="grid-section-title">Vitals</div>
-        <div class="grid">
-            <div class="sensor-box vital-card" data-metric="hr" data-label="Heart Rate (bpm)">
-                <h3>Heart Rate</h3>
-                <p id="heartRate">-- bpm</p>
-                <p class="small">Click for history</p>
-            </div>
-
-            <div class="sensor-box vital-card" data-metric="breathing" data-label="Respiration (breaths/min)">
-                <h3>Respiration</h3>
-                <p id="respirationRate">-- breaths/min</p>
-                <p class="small">Click for history</p>
-            </div>
-
-            <div class="sensor-box vital-card" data-metric="temp" data-label="Temperature (°C)">
-                <h3>Temperature</h3>
-                <p id="temperature">-- °C</p>
-                <p class="small">Click for history</p>
-            </div>
+            <div id="alertsContainer"></div>
         </div>
 
-        <!-- MOTION -->
-        <div class="grid-section-title">Motion & Orientation</div>
-        <div class="grid">
-            <div class="sensor-box vital-card" data-metric="orientation" data-label="Orientation">
-                <h3>Orientation</h3>
-                <p id="roll">Roll: --</p>
-                <p id="pitch">Pitch: --</p>
-                <p id="yaw">Yaw: --</p>
-                <p class="small">Click for history</p>
+        <!-- RIGHT COLUMN: SENSOR GRID -->
+        <div>
+            <!-- VITALS -->
+            <div class="grid-section-title">Vitals</div>
+            <div class="grid">
+                <div class="sensor-box vital-card" data-metric="hr" data-label="Heart Rate (bpm)">
+                    <h3>Heart Rate</h3>
+                    <p id="heartRate">-- bpm</p>
+                    <p class="small">Click for history</p>
+                </div>
+
+                <div class="sensor-box vital-card" data-metric="breathing" data-label="Respiration Rate">
+                    <h3>Respiration Rate</h3>
+                    <p id="respirationRate">-- breaths/min</p>
+                    <p class="small">Click for history</p>
+                </div>
+
+                <div class="sensor-box vital-card" data-metric="temp" data-label="Temperature (°C)">
+                    <h3>Temperature</h3>
+                    <p id="temperature">-- °C</p>
+                    <p class="small">Click for history</p>
+                </div>
             </div>
 
-            <div class="sensor-box vital-card" data-metric="accel" data-label="Acceleration">
-                <h3>Acceleration</h3>
-                <p id="accelX">X: --</p>
-                <p id="accelY">Y: --</p>
-                <p id="accelZ">Z: --</p>
-                <p class="small">Click for history</p>
+            <!-- MOTION & ORIENTATION -->
+            <div class="grid-section-title">Motion &amp; Orientation</div>
+            <div class="grid">
+                <div class="sensor-box vital-card" data-metric="orientation" data-label="Orientation (roll/pitch/yaw)">
+                    <h3>Orientation</h3>
+                    <p id="roll">Roll: --</p>
+                    <p id="pitch">Pitch: --</p>
+                    <p id="yaw">Yaw: --</p>
+                    <p class="small">Click for history</p>
+                </div>
+
+                <div class="sensor-box vital-card" data-metric="accel" data-label="Acceleration (m/s²)">
+                    <h3>Acceleration</h3>
+                    <p id="accelX">X: --</p>
+                    <p id="accelY">Y: --</p>
+                    <p id="accelZ">Z: --</p>
+                    <p class="small">Click for history</p>
+                </div>
+
+                <div class="sensor-box vital-card" data-metric="gyro" data-label="Gyroscope (°/s)">
+                    <h3>Gyroscope</h3>
+                    <p id="gyroX">X: --</p>
+                    <p id="gyroY">Y: --</p>
+                    <p id="gyroZ">Z: --</p>
+                    <p class="small">Click for history</p>
+                </div>
             </div>
 
-            <div class="sensor-box vital-card" data-metric="gyro" data-label="Gyroscope">
-                <h3>Gyroscope</h3>
-                <p id="gyroX">X: --</p>
-                <p id="gyroY">Y: --</p>
-                <p id="gyroZ">Z: --</p>
-                <p class="small">Click for history</p>
-            </div>
-        </div>
+            <!-- ENVIRONMENT & POSITION -->
+            <div class="grid-section-title">Environment &amp; Position</div>
+            <div class="grid">
+                <div class="sensor-box vital-card" data-metric="distance_m" data-label="LiDAR Distance (m)">
+                    <h3>Location Mapping</h3>
+<p class="small">Map out a home or room using your phone camera.</p>
+<button id="btnMapNewLocation" class="btn-primary">Map out new location</button>
+<p class="small">Tap to manage</p>
 
-        <!-- ENVIRONMENT / POSITION -->
-        <div class="grid-section-title">Environment & Position</div>
-        <div class="grid">
-            <div class="sensor-box vital-card" data-metric="distance_m" data-label="LiDAR Distance (m)">
-                <h3>LiDAR Distance</h3>
-                <p id="lidarDist">-- m</p>
-                <p class="small">Click for history</p>
-            </div>
+                <div class="sensor-box vital-card" data-metric="gps" data-label="GPS">
+                    <h3>GPS</h3>
+                    <p id="gpsLat">Lat: --</p>
+                    <p id="gpsLon">Lon: --</p>
+                    <p id="gpsAcc">Accuracy: -- m</p>
+                    <p class="small">Click for history</p>
+                </div>
 
-            <div class="sensor-box vital-card" data-metric="gps" data-label="GPS">
-                <h3>GPS</h3>
-                <p id="gpsLat">Lat: --</p>
-                <p id="gpsLon">Lon: --</p>
-                <p id="gpsAcc">Accuracy: -- m</p>
-                <p class="small">Click for history</p>
-            </div>
+                <div class="sensor-box vital-card" data-metric="water_submerged" data-label="Water Submerged">
+                    <h3>Water</h3>
+                    <p id="waterSub">--</p>
+                    <p class="small">Click for history</p>
+                </div>
 
-            <div class="sensor-box vital-card" data-metric="water_submerged" data-label="Water Submerged">
-                <h3>Water</h3>
-                <p id="waterSub">--</p>
-                <p class="small">Click for history</p>
-            </div>
+                <div class="sensor-box">
+                    <h3>ECG</h3>
+                    <p id="ecgVal">--</p>
+                </div>
 
-            <div class="sensor-box">
-                <h3>ECG</h3>
-                <p id="ecgVal">--</p>
+                <div class="sensor-box">
+                    <h3>Last Update</h3>
+                    <p id="lastUpdate" class="small">--</p>
+                </div>
             </div>
-
-            <div class="sensor-box">
-                <h3>Last Update</h3>
-                <p id="lastUpdate" class="small">--</p>
-            </div>
-        </div>
-
-        <!-- AUDIO CLIPS -->
-        <div class="audio-section">
-            <h3>Walkie-Talkie Clips</h3>
-            <div id="audioList"></div>
         </div>
     </div>
 
     <!-- HISTORY MODAL -->
-    <div id="historyModalOverlay" class="modal-overlay">
-        <div class="modal">
-            <div class="modal-header">
+    <div id="historyModalOverlay">
+        <div id="historyModal">
+            <div id="historyModalHeaderRow">
                 <h2 id="modalTitle">History</h2>
-                <button id="closeModalBtn" class="close-btn">&times;</button>
+                <button id="closeModalBtn">&times;</button>
             </div>
 
-            <div class="modal-controls">
+            <div id="historyControlsRow">
                 <label for="historyWindow">Time window:</label>
                 <select id="historyWindow">
+                    <option value="6">Last 6 hours</option>
                     <option value="12">Last 12 hours</option>
                     <option value="24">Last day</option>
                     <option value="168">Last week</option>
@@ -398,23 +407,69 @@
                 </select>
             </div>
 
+            <!-- Graph -->
             <canvas id="historyChart" height="120"></canvas>
 
-            <table id="historyTable">
-                <thead>
-                    <tr>
-                        <th>Time</th>
-                        <th>Value</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+            <!-- Table below graph -->
+            <div id="historyTableWrapper">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Your JS -->
+    <!-- Your main JS -->
     <script src="app.js"></script>
+
+<!-- Mapping Modal -->
+<div id="mappingModal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Map out new location</h2>
+      <button id="closeMappingModal" class="modal-close">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-row">
+        <label for="locationName">Location name</label>
+        <input id="locationName" type="text" placeholder="e.g., Home, Living Room" />
+        <button id="createLocationBtn" class="btn-primary">Start mapping</button>
+      </div>
+
+      <div id="mappingStep" class="mapping-step hidden">
+        <h3>Step-by-step capture</h3>
+        <ol class="mapping-instructions">
+          <li>Start at the front door (or main entry of the location).</li>
+          <li>Hold the phone at chest height and keep the camera level.</li>
+          <li>Walk slowly and take a photo every 3–6 steps.</li>
+          <li>At corners, turn slowly and take 2–3 photos in a semicircle.</li>
+          <li>For stairs, stand at the bottom and take 3 photos: bottom, mid, top.</li>
+        </ol>
+
+        <div class="capture-row">
+          <input id="photoInput" type="file" accept="image/*" capture="environment" multiple />
+          <button id="uploadPhotosBtn" class="btn-primary">Upload selected photos</button>
+        </div>
+
+        <p id="mappingStatus" class="small"></p>
+
+        <div class="mapping-gallery">
+          <h4>Uploaded photos</h4>
+          <div id="photoGallery" class="photo-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
