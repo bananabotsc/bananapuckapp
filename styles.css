@@ -52,3 +52,8 @@
   margin-left: auto;          /* pushes to far right */
   display: inline-block;      /* ensures it behaves like a normal flex item */
 }
+
+#alertRange {
+  margin-left: auto; /* dropdown is right-aligned in History */
+}
+
