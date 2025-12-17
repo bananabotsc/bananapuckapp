@@ -3,6 +3,7 @@
   display: flex;
   gap: 10px;
   margin-bottom: 12px;
+  align-items: center; /* NEW: keeps everything aligned */
 }
 
 .alert-tabs button {
@@ -48,5 +49,6 @@
 }
 
 #clearAllBtn {
-  margin-left: auto;
+  margin-left: auto;          /* pushes to far right */
+  display: inline-block;      /* ensures it behaves like a normal flex item */
 }
