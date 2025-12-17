@@ -122,16 +122,20 @@ function updateSensor(key, value, min, max, unit) {
 }
 
 document.addEventListener("click", e => {
-  if (!e.target.classList.contains("close")) return;
+  const closeBtn = e.target.closest(".close");
+  if (!closeBtn) return;
 
-  const msg = decodeURIComponent(e.target.dataset.msg);
+  const msg = decodeURIComponent(closeBtn.dataset.msg);
   ackAlertGroup(msg);
 });
 
 /* ---------- ALERTS ---------- */
 function addAlert(msg) {
+  const type = msg.split(" unsafe")[0]; // "BREATHING" or "HR"
+
   alerts.push({
     msg,
+    type,
     time: new Date(),
     acknowledged: false
   });
@@ -148,8 +152,8 @@ function renderAlerts() {
   const groups = {};
   alerts.forEach(a => {
     if (!a.acknowledged) {
-      if (!groups[a.msg]) groups[a.msg] = [];
-      groups[a.msg].push(a);
+      if (!groups[a.type]) groups[a.type] = [];
+      groups[a.type].push(a);
     }
   });
 
@@ -160,23 +164,25 @@ function renderAlerts() {
     return;
   }
 
-  keys.forEach(msg => {
-    const times = groups[msg]
-      .map(a => a.time.toLocaleString())
-      .join("<br>");
+  keys.forEach(type => {
+  const group = groups[type];
 
-    container.innerHTML += `
-      <div class="alert">
-        <div class="alert-title">${msg}</div>
-        <div class="alert-meta">${times}</div>
-        <span class="close" data-msg="${encodeURIComponent(msg)}">✕</span>
-      </div>`;
-  });
+  const title = `${type} unsafe`;
+  const times = group.map(a => a.time.toLocaleString()).join("<br>");
+
+  container.innerHTML += `
+    <div class="alert">
+      <div class="alert-title">${title}</div>
+      <div class="alert-meta">${times}</div>
+      <span class="close" data-msg="${encodeURIComponent(type)}">✕</span>
+    </div>`;
+});
+
 }
 
-function ackAlertGroup(msg) {
+function ackAlertGroup(type) {
   alerts.forEach(a => {
-    if (a.msg === msg && !a.acknowledged) {
+    if (a.type === type && !a.acknowledged) {
       a.acknowledged = true;
     }
   });
