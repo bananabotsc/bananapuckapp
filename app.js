@@ -92,18 +92,24 @@ function ackAlert(i) {
   renderAlerts();
 }
 
+function clearAllAlerts() {
+  if (!confirm("Clear all active alerts?")) return;
+  alerts.forEach(a => a.acknowledged = true);
+  renderAlerts();
+}
+
 function showActiveAlerts() {
-  document.getElementById("activeAlerts").style.display = "block";
-  document.getElementById("alertHistory").style.display = "none";
-  document.getElementById("activeTab").classList.add("active");
-  document.getElementById("historyTab").classList.remove("active");
+  activeAlerts.style.display = "block";
+  alertHistory.style.display = "none";
+  activeTab.classList.add("active");
+  historyTab.classList.remove("active");
 }
 
 function showHistoryAlerts() {
-  document.getElementById("activeAlerts").style.display = "none";
-  document.getElementById("alertHistory").style.display = "block";
-  document.getElementById("activeTab").classList.remove("active");
-  document.getElementById("historyTab").classList.add("active");
+  activeAlerts.style.display = "none";
+  alertHistory.style.display = "block";
+  activeTab.classList.remove("active");
+  historyTab.classList.add("active");
   renderAlertHistory();
 }
 
@@ -131,31 +137,27 @@ function renderAlertHistory() {
 
 /* MODAL */
 function openModal(title, key) {
-  document.getElementById("modal").style.display = "flex";
-  document.getElementById("modalTitle").innerText = `${title} History`;
-
-  const labels = historyData[key].map(p => p.time.toLocaleTimeString());
-  const values = historyData[key].map(p => p.value);
+  modal.style.display = "flex";
+  modalTitle.innerText = `${title} History`;
 
   if (chart) chart.destroy();
 
-  chart = new Chart(document.getElementById("chart"), {
+  chart = new Chart(chartCanvas, {
     type: "line",
     data: {
-      labels,
-      datasets: [{ label: title, data: values }]
+      labels: historyData[key].map(p => p.time.toLocaleTimeString()),
+      datasets: [{ label: title, data: historyData[key].map(p => p.value) }]
     }
   });
 
-  const tbody = document.getElementById("tableBody");
-  tbody.innerHTML = "";
+  tableBody.innerHTML = "";
   historyData[key].forEach(p => {
-    tbody.innerHTML += `<tr><td>${p.time.toLocaleTimeString()}</td><td>${p.value.toFixed(2)}</td></tr>`;
+    tableBody.innerHTML += `<tr><td>${p.time.toLocaleTimeString()}</td><td>${p.value.toFixed(2)}</td></tr>`;
   });
 }
 
 function closeModal() {
-  document.getElementById("modal").style.display = "none";
+  modal.style.display = "none";
 }
 
 setInterval(fetchData, 2000);
