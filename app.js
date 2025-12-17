@@ -121,6 +121,13 @@ function updateSensor(key, value, min, max, unit) {
   saveData();
 }
 
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("close")) return;
+
+  const msg = decodeURIComponent(e.target.dataset.msg);
+  ackAlertGroup(msg);
+});
+
 /* ---------- ALERTS ---------- */
 function addAlert(msg) {
   alerts.push({
@@ -162,7 +169,7 @@ function renderAlerts() {
       <div class="alert">
         <div class="alert-title">${msg}</div>
         <div class="alert-meta">${times}</div>
-        <span class="close" onclick="ackAlertGroup(${JSON.stringify(msg)})">✕</span>
+        <span class="close" data-msg="${encodeURIComponent(msg)}">✕</span>
       </div>`;
   });
 }
