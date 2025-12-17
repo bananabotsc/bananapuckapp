@@ -88,28 +88,38 @@ function renderAlerts() {
 }
 
 function ackAlert(i) {
+  // (kept exactly as your existing logic)
   alerts[i].acknowledged = true;
   renderAlerts();
 }
 
-function clearAllAlerts() {
-  if (!confirm("Clear all active alerts?")) return;
-  alerts.forEach(a => a.acknowledged = true);
+/* NEW: Clear all active alerts */
+function clearAllActiveAlerts() {
+  // mark only unacknowledged alerts as acknowledged
+  alerts.forEach(a => {
+    if (!a.acknowledged) a.acknowledged = true;
+  });
+
   renderAlerts();
+
+  // if user is on History tab, refresh the list so it updates instantly
+  if (document.getElementById("alertHistory").style.display !== "none") {
+    renderAlertHistory();
+  }
 }
 
 function showActiveAlerts() {
-  activeAlerts.style.display = "block";
-  alertHistory.style.display = "none";
-  activeTab.classList.add("active");
-  historyTab.classList.remove("active");
+  document.getElementById("activeAlerts").style.display = "block";
+  document.getElementById("alertHistory").style.display = "none";
+  document.getElementById("activeTab").classList.add("active");
+  document.getElementById("historyTab").classList.remove("active");
 }
 
 function showHistoryAlerts() {
-  activeAlerts.style.display = "none";
-  alertHistory.style.display = "block";
-  activeTab.classList.remove("active");
-  historyTab.classList.add("active");
+  document.getElementById("activeAlerts").style.display = "none";
+  document.getElementById("alertHistory").style.display = "block";
+  document.getElementById("activeTab").classList.remove("active");
+  document.getElementById("historyTab").classList.add("active");
   renderAlertHistory();
 }
 
@@ -137,27 +147,31 @@ function renderAlertHistory() {
 
 /* MODAL */
 function openModal(title, key) {
-  modal.style.display = "flex";
-  modalTitle.innerText = `${title} History`;
+  document.getElementById("modal").style.display = "flex";
+  document.getElementById("modalTitle").innerText = `${title} History`;
+
+  const labels = historyData[key].map(p => p.time.toLocaleTimeString());
+  const values = historyData[key].map(p => p.value);
 
   if (chart) chart.destroy();
 
-  chart = new Chart(chartCanvas, {
+  chart = new Chart(document.getElementById("chart"), {
     type: "line",
     data: {
-      labels: historyData[key].map(p => p.time.toLocaleTimeString()),
-      datasets: [{ label: title, data: historyData[key].map(p => p.value) }]
+      labels,
+      datasets: [{ label: title, data: values }]
     }
   });
 
-  tableBody.innerHTML = "";
+  const tbody = document.getElementById("tableBody");
+  tbody.innerHTML = "";
   historyData[key].forEach(p => {
-    tableBody.innerHTML += `<tr><td>${p.time.toLocaleTimeString()}</td><td>${p.value.toFixed(2)}</td></tr>`;
+    tbody.innerHTML += `<tr><td>${p.time.toLocaleTimeString()}</td><td>${p.value.toFixed(2)}</td></tr>`;
   });
 }
 
 function closeModal() {
-  modal.style.display = "none";
+  document.getElementById("modal").style.display = "none";
 }
 
 setInterval(fetchData, 2000);
