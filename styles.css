@@ -57,3 +57,11 @@
   margin-left: auto; /* dropdown is right-aligned in History */
 }
 
+#exportCsvBtn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #eee;
+  font-weight: bold;
+}
