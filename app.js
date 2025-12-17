@@ -240,3 +240,4 @@ function closeModal() {
 
 setInterval(fetchData, 2000);
 fetchData();
+showActiveAlerts();
