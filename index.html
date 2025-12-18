@@ -274,6 +274,27 @@
   <div class="modal-content">
     <div class="close-x" onclick="closeModal()">✕</div>
     <h3 id="modalTitle"></h3>
+    <div style="display:flex; gap:10px; margin-bottom:12px; align-items:center;">
+      <select id="sensorRange" onchange="updateSensorView()">
+        <option value="0.25">Last 15 minutes</option>
+        <option value="0.5">Last 30 minutes</option>
+        <option value="1">Last 1 hour</option>
+        <option value="3">Last 3 hours</option>
+        <option value="6">Last 6 hours</option>
+        <option value="9">Last 9 hours</option>
+        <option value="12">Last 12 hours</option>
+        <option value="24">Last day</option>
+        <option value="168">Last week</option>
+        <option value="720">Last month</option>
+      </select>
+
+      <select id="exportSelect" onchange="handleSensorExport()">
+        <option value="">Export…</option>
+        <option value="csv">Export data table as CSV</option>
+        <option value="pdf">Export graph as PDF</option>
+      </select>
+    </div>
+
     <canvas id="chart"></canvas>
     <table>
       <thead>

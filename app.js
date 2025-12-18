@@ -3,6 +3,8 @@ const API = "https://bananapuck-server.onrender.com/get_data";
 let historyData = { hr: [], breathing: [], temp: [] };
 let alerts = [];
 let chart;
+let currentSensorKey = null;
+let currentSensorTitle = "";
 
 const STORAGE_KEY = "bananapuck_data";
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
@@ -21,11 +23,10 @@ function saveData() {
   );
 }
 
-
 function pruneOldData() {
   const cutoff = Date.now() - ONE_MONTH_MS;
 
-  // prune alerts
+  // prune alerts (kept as-is even though alerts come from server now)
   alerts = alerts.filter(a => new Date(a.time).getTime() > cutoff);
 
   // prune history
@@ -134,7 +135,7 @@ function updateSensor(key, value, min, max, unit) {
   ).innerText = `${value.toFixed(1)} ${unit}`;
 
   historyData[key].push({ time: new Date(), value });
-  if (historyData[key].length > 3000) historyData[key].shift(); // optional: larger buffer
+  if (historyData[key].length > 3000) historyData[key].shift();
   saveData();
 }
 
@@ -168,18 +169,18 @@ function renderAlerts() {
   }
 
   keys.forEach(type => {
-  const group = groups[type];
+    const group = groups[type];
 
-  const title = `${type} unsafe`;
-  const times = group.map(a => a.time.toLocaleString()).join("<br>");
+    const title = `${type} unsafe`;
+    const times = group.map(a => a.time.toLocaleString()).join("<br>");
 
-  container.innerHTML += `
-    <div class="alert">
-      <div class="alert-title">${title}</div>
-      <div class="alert-meta">${times}</div>
-      <span class="close" data-msg="${encodeURIComponent(type)}">✕</span>
-    </div>`;
-});
+    container.innerHTML += `
+      <div class="alert">
+        <div class="alert-title">${title}</div>
+        <div class="alert-meta">${times}</div>
+        <span class="close" data-msg="${encodeURIComponent(type)}">✕</span>
+      </div>`;
+  });
 }
 
 async function clearAllActiveAlerts() {
@@ -197,7 +198,6 @@ async function clearAllActiveAlerts() {
 
   fetchAlerts();
 }
-
 
 /* History: NOT grouped, NOT clearable */
 function renderAlertHistory() {
@@ -238,16 +238,13 @@ function exportAlertsCSV() {
     return;
   }
 
-  // CSV header
   let csv = "Alert Type,Value,Timestamp\n";
 
   filtered.forEach(a => {
-    // Extract value from message (everything after colon)
     let value = "";
     if (a.message && a.message.includes(":")) {
       value = a.message.split(":").slice(1).join(":").trim();
     }
-
     csv += `"${a.type}","${value}","${a.time.toLocaleString()}"\n`;
   });
 
@@ -279,7 +276,6 @@ function showActiveAlerts() {
   renderAlerts();
 }
 
-
 function showHistoryAlerts() {
   document.getElementById("activeAlerts").style.display = "none";
   document.getElementById("alertHistory").style.display = "block";
@@ -294,14 +290,35 @@ function showHistoryAlerts() {
   renderAlertHistory();
 }
 
-
-/* ---------- MODAL ---------- */
+/* ---------- MODAL (UPDATED) ---------- */
 function openModal(title, key) {
+  currentSensorKey = key;
+  currentSensorTitle = title;
+
   document.getElementById("modal").style.display = "flex";
   document.getElementById("modalTitle").innerText = `${title} History`;
 
-  const labels = historyData[key].map(p => p.time.toLocaleTimeString());
-  const values = historyData[key].map(p => p.value);
+  // reset controls to defaults
+  document.getElementById("sensorRange").value = "1"; // default: last 1 hour
+  document.getElementById("exportSelect").value = "";
+
+  updateSensorView();
+}
+
+function getFilteredSensorData() {
+  const hours = parseFloat(document.getElementById("sensorRange").value);
+  const cutoff = Date.now() - hours * 3600000;
+
+  return historyData[currentSensorKey].filter(
+    p => p.time.getTime() >= cutoff
+  );
+}
+
+function updateSensorView() {
+  const data = getFilteredSensorData();
+
+  const labels = data.map(p => p.time.toLocaleTimeString());
+  const values = data.map(p => p.value);
 
   if (chart) chart.destroy();
 
@@ -309,15 +326,83 @@ function openModal(title, key) {
     type: "line",
     data: {
       labels,
-      datasets: [{ label: title, data: values }]
+      datasets: [{
+        label: currentSensorTitle,
+        data: values,
+        borderWidth: 2,
+        pointRadius: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: { ticks: { maxRotation: 45, minRotation: 45 } }
+      }
     }
   });
 
   const tbody = document.getElementById("tableBody");
   tbody.innerHTML = "";
-  historyData[key].forEach(p => {
-    tbody.innerHTML += `<tr><td>${p.time.toLocaleTimeString()}</td><td>${p.value.toFixed(2)}</td></tr>`;
+
+  data.forEach(p => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${p.time.toLocaleString()}</td>
+        <td>${p.value.toFixed(2)}</td>
+      </tr>`;
   });
+}
+
+function handleSensorExport() {
+  const option = document.getElementById("exportSelect").value;
+
+  if (option === "csv") exportSensorCSV();
+  if (option === "pdf") exportSensorPDF();
+
+  document.getElementById("exportSelect").value = "";
+}
+
+function exportSensorCSV() {
+  const data = getFilteredSensorData();
+  if (data.length === 0) {
+    alert("No data in the selected time range.");
+    return;
+  }
+
+  let csv = "Time,Value\n";
+  data.forEach(p => {
+    csv += `"${p.time.toLocaleString()}","${p.value}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `bananapuck_${currentSensorKey}_data.csv`;
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function exportSensorPDF() {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert("jsPDF is not loaded. Add the jsPDF script tag to index.html.");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF("landscape");
+
+  const rangeLabel = document.getElementById("sensorRange").selectedOptions[0].text;
+  pdf.setFontSize(16);
+  pdf.text(`${currentSensorTitle} (${rangeLabel})`, 10, 15);
+
+  const canvas = document.getElementById("chart");
+  const imgData = canvas.toDataURL("image/png", 1.0);
+
+  pdf.addImage(imgData, "PNG", 10, 25, 270, 120);
+  pdf.save(`bananapuck_${currentSensorKey}_graph.pdf`);
 }
 
 function closeModal() {
