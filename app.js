@@ -194,8 +194,8 @@ function renderAlerts() {
 
       if (a.type === "FALL") {
         if (a.started_at) {
-          const start = new Date(a.started_at).getTime();
-          const seconds = Math.floor((now - start) / 1000);
+          const start = a.started_at * 1000;
+          const seconds = Math.max(0, Math.floor((now - start) / 1000));
           line += `<br>⏱️ Time fallen: ${seconds} seconds`;
         }
 
