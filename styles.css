@@ -78,19 +78,23 @@
 /* TOP CONTROL BAR (below header, above map) */
 .top-controls {
   display: flex;
-  justify-content: flex-end;
-  padding: 10px 20px;
-  background: #f4f6f8;
-}
+  justify-content: flex-start;
 
+  /* match map horizontal alignment */
+  margin: 16px 20px 0 20px;
+
+  /* same visual gap as header → content */
+  padding: 0;
+}
 .settings-btn {
   background: none;
   border: none;
   cursor: pointer;
   color: #555;
-  padding: 6px;
+  padding: 8px;
+  border-radius: 8px;
 }
 
 .settings-btn:hover {
-  color: #000;
+  background: rgba(0, 0, 0, 0.06);
 }
