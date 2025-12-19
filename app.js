@@ -1,6 +1,6 @@
 const API = "https://bananapuck-server.onrender.com/get_data";
 
-let historyData = { hr: [], breathing: [], temp: [] };
+let historyData = { hr: [], breathing: [], temp: [], co: [] };
 let alerts = [];
 let chart;
 let currentSensorKey = null;
@@ -122,8 +122,18 @@ async function fetchData() {
   document.getElementById("waterValue").innerText =
     data.water_submerged ? "YES" : "NO";
 
+  /* ---------- CO (ppm) ---------- */
+  if (data.co_ppm !== undefined && data.co_ppm !== null) {
+    updateCO(data.co_ppm);
+  } else {
+    document.getElementById("coValue").innerText = "-- ppm";
+    const card = document.getElementById("coCard");
+    if (card) card.classList.remove("safe", "warning", "danger");
+  }
+
   pruneOldData();
 }
+
 
 async function fetchAlerts() {
   const res = await fetch(ALERTS_API);
@@ -181,6 +191,34 @@ function updateSensor(key, value, min, max, unit) {
 
   throttledSave();
 }
+
+function updateCO(ppm) {
+  const card = document.getElementById("coCard");
+  if (!card) return;
+
+  card.classList.remove("safe", "warning", "danger");
+
+  // Simple thresholds (ppm)
+  // 0–9: safe, 10–35: warning, >35: danger
+  if (ppm > 35) {
+    card.classList.add("danger");
+  } else if (ppm >= 10) {
+    card.classList.add("warning");
+  } else {
+    card.classList.add("safe");
+  }
+
+  document.getElementById("coValue").innerText = `${ppm.toFixed(1)} ppm`;
+
+  // store history for modal + exports
+  historyData.co.push({ time: new Date(), value: ppm });
+  if (historyData.co.length > 1000) historyData.co.shift();
+
+  // keep your existing save strategy
+  // (don’t spam saves on every sample if your throttling exists elsewhere)
+  saveData();
+}
+
 
 document.addEventListener("click", e => {
   const closeBtn = e.target.closest(".close");
