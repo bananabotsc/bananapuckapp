@@ -52,23 +52,47 @@
 </header>
 
 <main>
-    <section>
-        <h3>Data Refresh Rate</h3>
-        <select id="refreshRate">
-            <option value="5000">Every 5 seconds</option>
-            <option value="10000">Every 10 seconds</option>
-            <option value="15000">Every 15 seconds</option>
-            <option value="30000">Every 30 seconds</option>
-            <option value="60000">Every minute</option>
-            <option value="300000">Every 5 minutes</option>
-        </select>
-    </section>
+  <section>
+    <h3>Data Refresh Rate</h3>
+    <select id="refreshRate">
+      <option value="5000">Every 5 seconds</option>
+      <option value="10000">Every 10 seconds</option>
+      <option value="15000">Every 15 seconds</option>
+      <option value="30000">Every 30 seconds</option>
+      <option value="60000">Every minute</option>
+      <option value="300000">Every 5 minutes</option>
+    </select>
+  </section>
 </main>
 
 <script>
+  const SETTINGS_KEY = "bananapuck_settings";
+
+  // Load saved settings on page open
+  (function loadSettings() {
+    const stored = localStorage.getItem(SETTINGS_KEY);
+    if (!stored) return;
+
+    try {
+      const settings = JSON.parse(stored);
+      if (settings.refreshIntervalMs) {
+        document.getElementById("refreshRate").value =
+          settings.refreshIntervalMs;
+      }
+    } catch {
+      console.warn("Failed to load settings");
+    }
+  })();
+
   function saveSettings() {
-    const refreshRate = document.getElementById("refreshRate").value;
-    localStorage.setItem("refreshRate", refreshRate);
+    const refreshIntervalMs =
+      parseInt(document.getElementById("refreshRate").value);
+
+    localStorage.setItem(
+      SETTINGS_KEY,
+      JSON.stringify({ refreshIntervalMs })
+    );
+
     window.location.href = "index.html";
   }
 </script>
