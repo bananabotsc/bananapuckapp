@@ -18,6 +18,14 @@ let refreshIntervalMs = 4000; // default: 4s
 let dataIntervalId = null;
 let alertsIntervalId = null;
 
+function applyRefreshIntervals() {
+  if (dataIntervalId) clearInterval(dataIntervalId);
+  if (alertsIntervalId) clearInterval(alertsIntervalId);
+
+  dataIntervalId = setInterval(fetchData, refreshIntervalMs);
+  alertsIntervalId = setInterval(fetchAlerts, 3000);
+}
+
 
 /* ---------- PERSISTENCE ---------- */
 function saveData() {
