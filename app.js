@@ -123,15 +123,14 @@ async function fetchData() {
   const waterValue = document.getElementById("waterValue");
 
   if (data.water_submerged) {
-    waterValue.innerText = "YES";
+    waterValue.innerText = "SUBMERGED";
     waterCard.classList.remove("safe");
     waterCard.classList.add("danger");
   } else {
-    waterValue.innerText = "NO";
+    waterValue.innerText = "DRY";
     waterCard.classList.remove("danger");
     waterCard.classList.add("safe");
   }
-
 
   /* ---------- CO (ppm) ---------- */
   if (data.co_ppm !== undefined && data.co_ppm !== null) {
@@ -285,10 +284,21 @@ function renderAlerts() {
         }
       }
 
+      // 🔥 WATER SUBMERGENCE (ADDED)
+      if (a.type === "WATER") {
+        if (a.started_at) {
+          const start = a.started_at * 1000;
+          const seconds = Math.max(0, Math.floor((now - start) / 1000));
+          line += `<br>⏱️ Time submerged: ${seconds} seconds`;
+        }
+
+        if (a.coords) {
+          line += `<br>📍 ${a.coords.lat.toFixed(5)}, ${a.coords.lon.toFixed(5)}`;
+        }
+      }
+
       return line;
     }).join("<br><br>");
-
-
 
     container.innerHTML += `
       <div class="alert">
